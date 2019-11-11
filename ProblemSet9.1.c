@@ -4,15 +4,14 @@
 #include <math.h>
 #include <sndfile.h>
 
-//Compile this code using:
-//gcc 2.SawtoothWave.c -o 2.SawtoothWave -lsndfile
+
 
 #define kSampleRate 44100
 #define kSec 1
 #define kNumFrames (kSampleRate * kSec)
 #define kNumChannels 2
 #define kFormat (SF_FORMAT_WAV | SF_FORMAT_PCM_24)
-#define kFileName "TriangleWave.wav"
+#define kFileName "TriWave.wav"
 
 void plotAndPlay();
 
@@ -21,27 +20,23 @@ int main(void){
   SF_INFO sfInfo;
   double *buffer;
 
-  //Sound parameters
+
   double amplitude = 0.25;
   double frequency = 250.0;
 
-  //Create 2 channels worth buffer for holding audio data 
+  
   buffer = malloc(kNumChannels * kNumFrames * sizeof(double));
   if (!buffer){
     printf ("Error : Malloc failed.\n");
 		return 1;
 	};
 
-  //Initialize SF_INFO with 0s (memset is in string.h library)
-  memset(&sfInfo, 0, sizeof(SF_INFO)); 
-
-  //Set the format for the sound file to be saved
   sfInfo.samplerate = kSampleRate;
-	sfInfo.frames = kNumFrames;
+	sfInfo.frames = kNumFrames; 
 	sfInfo.channels = kNumChannels;
 	sfInfo.format = kFormat;
 
-   //Open the original sound file as read mode
+ 
   sndFile = sf_open(kFileName, SFM_WRITE, &sfInfo);
   if(!sndFile){
     printf ("Error : could not open file : %s\n", kFileName);
@@ -51,9 +46,9 @@ int main(void){
 
   //Compute Sawtooth Wave (interleave channels)
   for(int n = 0; n < kNumFrames; n++){
-    for(int i = 1; i <= 15; i=i+ 2){ //Up to 15th harmonics 
-      if(frequency * i < kSampleRate / 2){
-      double sample = amplitude / pow(((double) i * sin(2.0 * M_PI * frequency * i * n / kSampleRate)), 2.0);
+    for(int i = 1; i <= 15; i += 1){ //Up to 15th harmonics 
+      if(frequency * (2 * i - 1) < kSampleRate / 2){ 
+        double sample = amplitude * cos(2 * M_PI * (2 * i - 1) * frequency * n / kSampleRate) / pow(2 * i - 1, 2);
       for(int c = 0; c < kNumChannels; c++){
         buffer[kNumChannels * n + c] += sample;
       }
@@ -61,7 +56,7 @@ int main(void){
     }
   }
   
-  //Write out the result
+
   sf_count_t count = sf_write_double(sndFile, buffer, sfInfo.channels * kNumFrames);
 
   //Make sure writing the file succeeeded  
@@ -79,17 +74,15 @@ int main(void){
 }
 
 void plotAndPlay(char *fileName){
-  //Save .dat file to plot the waveform using gnuplot
-  //Install sox for this to work:
-  //brew install sox
+
   char command[100]; 
   sprintf(command, "sox \"%s\" -r 8000 plot.dat", fileName);
   system(command);
   
-  //Plot the plot.dat file
+
   system("gnuplot --persist -e \"plot 'plot.dat' every ::1::100 using 1:2 with lines\"");
 
-  //Play the audio file for auditory feedback
+
   sprintf(command, "afplay \"%s\" 2> /dev/null", fileName);
   system(command);
 }
